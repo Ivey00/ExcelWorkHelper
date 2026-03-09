@@ -1,4 +1,4 @@
-# Excel Reference Matcher (RefMatch)
+# Excel Reference Matcher (ExcelWorkHelper)
 
 A web-based tool for intelligent Excel data processing, featuring reference-based fusion and product statistics generation.
 
