@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RefMatch — Fusion & Stats Excel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;
+  --border:#2a2a3d;--accent:#00e5ff;--success:#00c896;
+  --warning:#ffb800;--purple:#a78bfa;--text:#e8e8f0;--muted:#6b6b85;
+  --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);padding:24px 16px 60px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;}
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;}
+
+/* HEADER */
+header{text-align:center;margin-bottom:24px;}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--accent);border:1px solid var(--accent);padding:4px 12px;border-radius:2px;margin-bottom:12px;}
+h1{font-family:var(--mono);font-size:clamp(18px,3.5vw,32px);font-weight:700;line-height:1.2;margin-bottom:4px;}
+h1 em{color:var(--accent);font-style:normal;}
+.sub{color:var(--muted);font-size:13px;}
+
+/* TABS */
+.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--border);}
+.tab{padding:10px 24px;font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none;}
+.tab:hover{color:var(--text);}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+.tab.on.purple{color:var(--purple);border-bottom-color:var(--purple);}
+.page{display:none;}
+.page.on{display:block;}
+
+/* SHARED CARD STYLES */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.card-top{padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700;flex-shrink:0;}
+.num.p{background:var(--purple);}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;}
+.card-title.p{color:var(--purple);}
+.tag{margin-left:auto;font-size:9px;padding:2px 7px;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.25);border-radius:3px;font-family:var(--mono);white-space:nowrap;}
+.tag.p{background:rgba(167,139,250,.1);color:var(--purple);border-color:rgba(167,139,250,.25);}
+.card-body{padding:14px;}
+
+/* DROP ZONE */
+.dz{border:2px dashed var(--border);border-radius:6px;padding:20px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dz:hover,.dz.over{border-color:var(--accent);background:rgba(0,229,255,.04);}
+.dz.over-p{border-color:var(--purple);background:rgba(167,139,250,.04);}
+.dz.loaded{border-color:var(--success);background:rgba(0,200,150,.04);}
+.dz-icon{font-size:24px;margin-bottom:6px;}
+.dz-msg{font-size:12px;color:var(--muted);line-height:1.4;}
+.dz-msg strong{color:var(--accent);}
+.dz-msg strong.p{color:var(--purple);}
+.field{margin-top:10px;}
+.lbl{display:block;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+select{width:100%;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--body);font-size:12px;appearance:none;cursor:pointer;}
+select:focus{outline:none;border-color:var(--accent);}
+
+/* FUSION LAYOUT */
+.upload-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:start;margin-bottom:20px;}
+.arrow{display:flex;align-items:center;justify-content:center;padding-top:60px;font-size:22px;color:var(--accent);opacity:.4;}
+
+/* THRESHOLD */
+.trow{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 18px;margin-bottom:14px;}
+.tlbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;white-space:nowrap;}
+input[type=range]{flex:1;height:4px;background:var(--border);border-radius:2px;appearance:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px rgba(0,229,255,.5);}
+.tval{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);width:50px;text-align:right;}
+
+/* BUTTONS */
+.btn{width:100%;padding:13px;margin-bottom:12px;border:none;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:box-shadow .2s;}
+.btn-accent{background:var(--accent);color:#000;}
+.btn-accent:hover{box-shadow:0 0 20px rgba(0,229,255,.4);}
+.btn-purple{background:var(--purple);color:#000;}
+.btn-purple:hover{box-shadow:0 0 20px rgba(167,139,250,.4);}
+.btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+.btn-dl{background:var(--success);color:#000;animation:pulse 1.6s ease-in-out infinite;margin-bottom:14px;}
+.btn-dl:hover{box-shadow:0 0 36px rgba(0,200,150,.6);}
+@keyframes pulse{0%,100%{box-shadow:0 0 24px rgba(0,200,150,.35);}50%{box-shadow:0 0 40px rgba(0,200,150,.65);}}
+
+/* STATUS */
+.status-bar{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:12px;}
+
+/* STATS GRID */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;}
+.stat-n{font-family:var(--mono);font-size:22px;font-weight:700;margin-bottom:2px;}
+.stat-l{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+.c-accent{color:var(--accent);}.c-ok{color:var(--success);}.c-no{color:var(--warning);}.c-purple{color:var(--purple);}
+
+/* HIDDEN BLOCKS */
+.hidden{display:none!important;}
+
+/* TABLE */
+.tbl-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;}
+.tbl-head{padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.tbl-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;}
+.c-acc-txt{color:var(--accent);}.c-pur-txt{color:var(--purple);}
+.fbts{display:flex;gap:4px;}
+.fbt{padding:3px 8px;font-size:9px;font-family:var(--mono);border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+.fbt:hover,.fbt.on{border-color:var(--accent);color:var(--accent);}
+.fbt.on-p{border-color:var(--purple)!important;color:var(--purple)!important;}
+.tbl-scroll{max-height:320px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+thead th{padding:8px 12px;text-align:left;font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;}
+tbody tr{border-bottom:1px solid rgba(42,42,61,.4);}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+td{padding:8px 12px;vertical-align:middle;}
+.mono{font-family:var(--mono);}
+.price{font-family:var(--mono);font-weight:700;color:var(--success);}
+.empty{color:var(--muted);font-style:italic;}
+.badge{display:inline-block;padding:2px 6px;border-radius:3px;font-family:var(--mono);font-size:8px;letter-spacing:1px;}
+.b-ok{background:rgba(0,200,150,.1);color:var(--success);border:1px solid rgba(0,200,150,.3);}
+.b-no{background:rgba(255,183,0,.1);color:var(--warning);border:1px solid rgba(255,183,0,.3);}
+.b-pur{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3);}
+
+/* STAT PAGE SPECIFICS */
+.col-map{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;}
+.col-map-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--purple);text-transform:uppercase;margin-bottom:12px;}
+.col-map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+@media(max-width:600px){
+  .upload-grid{grid-template-columns:1fr;}
+  .arrow{padding-top:0;transform:rotate(90deg);}
+  .stats{grid-template-columns:1fr;}
+  .col-map-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="chip">⬡ REFMATCH</div>
+  <h1><em>Fusion</em> & <em style="color:var(--purple)">Statistiques</em> Excel</h1>
+  <p class="sub">Fusion intelligente par similarité · Statistiques produits par marque</p>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab on"    onclick="switchTab('fusion',this)">⇄ Fusion par Référence</button>
+  <button class="tab purple" onclick="switchTab('stats',this)">▦ Statistiques Produits</button>
+</div>
+
+<!-- ═══════════════════════════════════════════ TAB 1: FUSION ═══ -->
+<div class="page on" id="page-fusion">
+
+  <div class="upload-grid">
+    <div class="card">
+      <div class="card-top"><div class="num">1</div><span class="card-title">Table Principale</span><span class="tag">Référence</span></div>
+      <div class="card-body">
+        <div class="dz" id="dz1">
+          <input type="file" id="f1" accept=".xlsx,.xls,.csv">
+          <div class="dz-icon" id="ico1">📁</div>
+          <div class="dz-msg" id="msg1"><strong>Cliquez ou déposez</strong><br>Colonne <strong>Référence</strong></div>
+        </div>
+        <div id="flds1" class="hidden">
+          <div class="field"><span class="lbl">Colonne Référence</span><select id="sel_ref1"></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="card">
+      <div class="card-top"><div class="num">2</div><span class="card-title">Table des Prix</span><span class="tag">Prix TTC</span></div>
+      <div class="card-body">
+        <div class="dz" id="dz2">
+          <input type="file" id="f2" accept=".xlsx,.xls,.csv">
+          <div class="dz-icon" id="ico2">📁</div>
+          <div class="dz-msg" id="msg2"><strong>Cliquez ou déposez</strong><br><strong>Référence</strong> + <strong>Prix TTC</strong></div>
+        </div>
+        <div id="flds2" class="hidden">
+          <div class="field"><span class="lbl">Colonne Référence</span><select id="sel_ref2"></select></div>
+          <div class="field"><span class="lbl">Colonne Prix TTC</span><select id="sel_price"></select></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trow">
+    <span class="tlbl">⚙ Seuil de similarité</span>
+    <input type="range" id="seuil" min="50" max="100" value="90">
+    <span class="tval" id="seuilVal">90%</span>
+  </div>
+
+  <button class="btn btn-accent" id="btnFusion" disabled onclick="runFusion()">▶ LANCER LA FUSION</button>
+  <div class="status-bar" id="fusionStatus">En attente des fichiers…</div>
+  <button class="btn btn-dl hidden" id="btnDlFusion" onclick="downloadFusion()">⬇ &nbsp;TÉLÉCHARGER LE FICHIER EXCEL FUSIONNÉ</button>
+
+  <div class="hidden" id="fusionStatsWrap">
+    <div class="stats">
+      <div class="stat"><div class="stat-n c-accent" id="fTotal">0</div><div class="stat-l">Total</div></div>
+      <div class="stat"><div class="stat-n c-ok"     id="fOk">0</div><div class="stat-l">Matchés</div></div>
+      <div class="stat"><div class="stat-n c-no"     id="fNo">0</div><div class="stat-l">Non trouvés</div></div>
+    </div>
+  </div>
+
+  <div class="hidden" id="fusionTblWrap">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <span class="tbl-title c-acc-txt">Aperçu des résultats</span>
+        <div class="fbts">
+          <button class="fbt on" onclick="filterFusion('all',this)">Tous</button>
+          <button class="fbt"    onclick="filterFusion('ok',this)">Matchés</button>
+          <button class="fbt"    onclick="filterFusion('no',this)">Non trouvés</button>
+        </div>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Réf. Table 1</th><th>Réf. Matchée</th><th>Score</th><th>Prix TTC</th><th>Statut</th></tr></thead>
+          <tbody id="fusionTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-fusion -->
+
+
+<!-- ═══════════════════════════════════════════ TAB 2: STATS ═══ -->
+<div class="page" id="page-stats">
+
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-top"><div class="num p">▦</div><span class="card-title p">Fichier Produits</span><span class="tag p">Statistiques</span></div>
+    <div class="card-body">
+      <div class="dz" id="dzStat">
+        <input type="file" id="fStat" accept=".xlsx,.xls,.csv">
+        <div class="dz-icon" id="icoStat">📊</div>
+        <div class="dz-msg" id="msgStat">
+          <strong class="p">Cliquez ou déposez</strong><br>
+          Colonnes : <strong class="p">Référence, Libellé, Marque, QT, M.vente TTC</strong>
+        </div>
+      </div>
+      <!-- Column mapping -->
+      <div id="statFlds" class="hidden">
+        <div class="col-map" style="margin-top:12px;">
+          <div class="col-map-title">Mapping des colonnes</div>
+          <div class="col-map-grid">
+            <div><span class="lbl">Référence</span><select id="sc_ref"></select></div>
+            <div><span class="lbl">Libellé</span><select id="sc_lib"></select></div>
+            <div><span class="lbl">Marque</span><select id="sc_marque"><option value="__auto__">— Détecter auto —</option></select></div>
+            <div><span class="lbl">Quantité (QT)</span><select id="sc_qt"></select></div>
+            <div><span class="lbl">Prix vente TTC</span><select id="sc_prix"></select></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-purple hidden" id="btnStats" onclick="runStats()">▦ CALCULER LES STATISTIQUES</button>
+  <div class="status-bar hidden" id="statStatus"></div>
+  <button class="btn btn-dl hidden" id="btnDlStats" onclick="downloadStats()">⬇ &nbsp;TÉLÉCHARGER LE RAPPORT EXCEL</button>
+
+  <!-- KPI CARDS -->
+  <div class="hidden" id="statKpiWrap">
+    <div class="stats" style="grid-template-columns:repeat(4,1fr);">
+      <div class="stat"><div class="stat-n c-purple" id="kTotalProd">0</div><div class="stat-l">Produits</div></div>
+      <div class="stat"><div class="stat-n c-accent"  id="kMarques">0</div><div class="stat-l">Marques</div></div>
+      <div class="stat"><div class="stat-n c-ok"      id="kTotalQty">0</div><div class="stat-l">Qté totale</div></div>
+      <div class="stat"><div class="stat-n c-no"      id="kTotalCA">—</div><div class="stat-l">CA Total TTC</div></div>
+    </div>
+  </div>
+
+  <!-- BY-MARQUE TABLE -->
+  <div class="hidden" id="statMarqueWrap">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <span class="tbl-title c-pur-txt">Statistiques par Marque</span>
+        <div class="fbts" id="marqueFbts"></div>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Marque</th><th>Nb Produits</th><th>Qté Totale</th><th>CA Total TTC</th><th>CA Moyen/produit</th><th>% du CA</th></tr></thead>
+          <tbody id="marqueBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP 50 TABLE -->
+  <div class="hidden" id="statTop50Wrap">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <span class="tbl-title" style="color:var(--warning);">🏆 TOP 50 — Prix les plus élevés</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">Triés par M.vente TTC décroissant</span>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Référence</th><th>Marque</th><th>Libellé</th><th>QT</th><th>Prix TTC</th><th>Total TTC</th></tr></thead>
+          <tbody id="top50Body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL TABLE -->
+  <div class="hidden" id="statDetailWrap">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <span class="tbl-title c-pur-txt">Détail Produits</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="lbl" style="margin:0;white-space:nowrap;">Filtrer marque :</span>
+          <select id="filterMarque" onchange="renderDetail()" style="width:auto;font-size:10px;padding:4px 8px;"></select>
+        </div>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Référence</th><th>Marque (détectée)</th><th>Libellé</th><th>QT</th><th>Prix TTC</th><th>Total TTC</th></tr></thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-stats -->
+</div><!-- /wrap -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script>
+// ═══════════════════════════ UTILS ═══════════════════════════════
+function get(id){return document.getElementById(id);}
+function show(id){get(id).classList.remove('hidden');}
+function hide(id){get(id).classList.add('hidden');}
+function setTxt(id,v){get(id).textContent=v;}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtNum(n){return Number(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtInt(n){return Math.round(n).toLocaleString('fr-FR');}
+
+function fillSel(id,cols,sel){
+  var el=get(id);el.innerHTML='';
+  cols.forEach(function(c){var o=document.createElement('option');o.value=o.textContent=c;if(c===sel)o.selected=true;el.appendChild(o);});
+}
+function detect(cols,kws){
+  for(var k=0;k<kws.length;k++)for(var c=0;c<cols.length;c++)if(cols[c].toLowerCase().indexOf(kws[k])!==-1)return cols[c];
+  return cols[0];
+}
+
+// TAB SWITCH
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
+  btn.classList.add('on');
+  get('page-'+tab).classList.add('on');
+}
+
+// ═══════════════════════════ FUSION ══════════════════════════════
+var rows1=[],rows2=[],merged=[];
+
+function jaro(a,b){
+  if(a===b)return 1;var l1=a.length,l2=b.length;if(!l1||!l2)return 0;
+  var md=Math.max(0,Math.floor(Math.max(l1,l2)/2)-1);
+  var m1=[],m2=[],matches=0,trans=0;
+  for(var i=0;i<l1;i++){var lo=Math.max(0,i-md),hi=Math.min(i+md+1,l2);for(var j=lo;j<hi;j++){if(m2[j]||a[i]!==b[j])continue;m1[i]=m2[j]=true;matches++;break;}}
+  if(!matches)return 0;var k=0;
+  for(var i=0;i<l1;i++){if(!m1[i])continue;while(!m2[k])k++;if(a[i]!==b[k])trans++;k++;}
+  var j0=(matches/l1+matches/l2+(matches-trans/2)/matches)/3;
+  var p=0;for(var i=0;i<Math.min(4,l1,l2);i++){if(a[i]===b[i])p++;else break;}
+  return j0+p*0.1*(1-j0);
+}
+function norm(s){return String(s||'').trim().toUpperCase();}
+function simScore(a,b){
+  var na=norm(a),nb=norm(b);if(!na||!nb)return 0;if(na===nb)return 1;
+  var sa=na.replace(/\s+/g,''),sb=nb.replace(/\s+/g,'');
+  if(sa===sb||sa.indexOf(sb)!==-1||sb.indexOf(sa)!==-1)return 1;
+  return jaro(na,nb);
+}
+
+function loadFusionFile(n,input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'binary'});
+      var data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      if(!data.length){setTxt('fusionStatus','⚠ Fichier vide.');return;}
+      var cols=Object.keys(data[0]);
+      if(n===1){rows1=data;fillSel('sel_ref1',cols,detect(cols,['référence','ref','reference','code']));show('flds1');}
+      else{rows2=data;fillSel('sel_ref2',cols,detect(cols,['référence','ref','reference','code']));fillSel('sel_price',cols,detect(cols,['prix ttc','prix','price','ttc','tarif','achat']));show('flds2');}
+      get('dz'+n).classList.add('loaded');
+      get('ico'+n).textContent='✅';
+      get('msg'+n).innerHTML='<strong style="color:var(--success)">'+escH(file.name)+'</strong><br><span style="color:var(--success)">'+data.length+' lignes</span>';
+      checkFusionReady();
+    }catch(err){setTxt('fusionStatus','❌ '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+function checkFusionReady(){var ok=rows1.length&&rows2.length;get('btnFusion').disabled=!ok;if(ok)setTxt('fusionStatus','✅ Fichiers chargés — prêt à fusionner');}
+
+function runFusion(){
+  var colR1=get('sel_ref1').value,colR2=get('sel_ref2').value,colP=get('sel_price').value;
+  var threshold=parseInt(get('seuil').value)/100;
+  hide('btnDlFusion');hide('fusionStatsWrap');hide('fusionTblWrap');
+  get('btnFusion').disabled=true;setTxt('fusionStatus','⏳ Fusion en cours…');
+  setTimeout(function(){
+    try{
+      merged=[];
+      for(var i=0;i<rows1.length;i++){
+        var r={},keys=Object.keys(rows1[i]);
+        for(var k=0;k<keys.length;k++)r[keys[k]]=rows1[i][keys[k]];
+        var ref1=String(r[colR1]||'');
+        var best=0,bestRef='',bestPrice='';
+        for(var j=0;j<rows2.length;j++){
+          var sc=simScore(ref1,String(rows2[j][colR2]||''));
+          if(sc>best){best=sc;bestRef=String(rows2[j][colR2]||'');bestPrice=rows2[j][colP];}
+        }
+        r['__ref1']=ref1;r['__ref2']=best>=threshold?bestRef:'';
+        r['__score']=Math.round(best*100);r['__matched']=best>=threshold;
+        r['Prix TTC']=best>=threshold?bestPrice:'';
+        merged.push(r);
+      }
+      var ok=merged.filter(function(r){return r.__matched;}).length;
+      setTxt('fTotal',merged.length);setTxt('fOk',ok);setTxt('fNo',merged.length-ok);
+      renderFusionTable('all');
+      setTxt('fusionStatus','✅ '+ok+' référence(s) matchée(s) sur '+merged.length);
+      show('btnDlFusion');show('fusionStatsWrap');show('fusionTblWrap');
+    }catch(err){setTxt('fusionStatus','❌ '+err.message);}
+    get('btnFusion').disabled=false;
+  },100);
+}
+
+function filterFusion(f,btn){
+  document.querySelectorAll('#page-fusion .fbt').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');renderFusionTable(f);
+}
+function renderFusionTable(f){
+  var rows=f==='all'?merged:f==='ok'?merged.filter(function(r){return r.__matched;}):merged.filter(function(r){return !r.__matched;});
+  var html='',lim=Math.min(rows.length,300);
+  for(var i=0;i<lim;i++){
+    var r=rows[i],col=r.__score>=90?'var(--success)':r.__score>=70?'var(--warning)':'#ff4757';
+    var pr=(r['Prix TTC']!==''&&r['Prix TTC']!=null)?'<span class="price">'+escH(String(r['Prix TTC']))+'</span>':'<span class="empty">—</span>';
+    var bd=r.__matched?'<span class="badge b-ok">✓ MATCH</span>':'<span class="badge b-no">∅ N/A</span>';
+    html+='<tr><td class="mono">'+escH(r.__ref1)+'</td><td class="mono" style="color:var(--muted)">'+escH(r.__ref2||'—')+'</td><td style="font-family:var(--mono);color:'+col+'">'+r.__score+'%</td><td>'+pr+'</td><td>'+bd+'</td></tr>';
+  }
+  if(rows.length>300)html+='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:10px;font-size:10px;font-family:var(--mono)">+ '+(rows.length-300)+' lignes dans le fichier</td></tr>';
+  get('fusionTbody').innerHTML=html||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">Aucun résultat</td></tr>';
+}
+async function downloadFusion(){
+  if(!merged.length)return;
+  var data=merged.map(function(r){var c={},ks=Object.keys(r);for(var i=0;i<ks.length;i++)if(ks[i].indexOf('__')!==0)c[ks[i]]=r[ks[i]];return c;});
+  var cols=Object.keys(data[0]||{});
+
+  var wb=new ExcelJS.Workbook();
+  wb.creator='RefMatch'; wb.created=new Date();
+  var ws=wb.addWorksheet('Fusion',{views:[{state:'frozen',ySplit:3}]});
+
+  // ── Palette
+  var C={bg:'0D0D14',surface:'14141E',surface2:'1C1C2A',accent:'00E5FF',success:'00C896',warning:'FFB800',danger:'FF4757',muted:'6B6B85',text:'E8E8F0',white:'FFFFFF',black:'000000'};
+
+  // ── Title row (row 1)
+  ws.mergeCells(1,1,1,cols.length);
+  var titleCell=ws.getCell(1,1);
+  titleCell.value='⇄  FUSION PAR RÉFÉRENCE — RefMatch';
+  titleCell.font={name:'Calibri',size:14,bold:true,color:{argb:'FF'+C.accent}};
+  titleCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
+  titleCell.alignment={horizontal:'center',vertical:'middle'};
+  ws.getRow(1).height=32;
+
+  // ── Stats row (row 2)
+  var ok=merged.filter(function(r){return r.__matched;}).length;
+  ws.mergeCells(2,1,2,cols.length);
+  var statsCell=ws.getCell(2,1);
+  statsCell.value='Total: '+merged.length+'   |   ✓ Matchés: '+ok+'   |   ✗ Non trouvés: '+(merged.length-ok);
+  statsCell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.muted}};
+  statsCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface}};
+  statsCell.alignment={horizontal:'center',vertical:'middle'};
+  ws.getRow(2).height=20;
+
+  // ── Header row (row 3)
+  var hRow=ws.getRow(3);
+  hRow.height=22;
+  cols.forEach(function(col,i){
+    var cell=hRow.getCell(i+1);
+    cell.value=col.toUpperCase();
+    cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.black}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.accent}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.border={bottom:{style:'thin',color:{argb:'FF'+C.surface2}}};
+  });
+
+  // ── Prix TTC col index
+  var priceTTCIdx = cols.indexOf('Prix TTC');
+
+  // ── Data rows (from row 4)
+  data.forEach(function(row,ri){
+    var xRow=ws.getRow(ri+4);
+    xRow.height=18;
+    var isEven=ri%2===0;
+    var rowBg=isEven?C.surface:C.bg;
+
+    // Find matched status from original merged row
+    var origRow=merged[ri];
+    var isMatched=origRow?origRow.__matched:false;
+    var score=origRow?origRow.__score:0;
+
+    cols.forEach(function(col,ci){
+      var cell=xRow.getCell(ci+1);
+      var val=row[col];
+      cell.value=(val===''||val===undefined||val===null)?'':val;
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+rowBg}};
+      cell.font={name:'Calibri',size:9,color:{argb:'FF'+C.text}};
+      cell.alignment={vertical:'middle'};
+
+      // Price TTC column — green & bold if matched
+      if(col==='Prix TTC' && isMatched && val!==''){
+        cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.success}};
+      }
+      // Score coloring (we inject a Score column)
+    });
+
+    // Inject score & status at end (not in original data but useful)
+    // Actually colour the row background if unmatched
+    if(!isMatched){
+      cols.forEach(function(col,ci){
+        var cell=xRow.getCell(ci+1);
+        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A1500'}};
+        if(ci===0) cell.font={name:'Calibri',size:9,color:{argb:'FF'+C.muted}};
+      });
+    }
+  });
+
+  // ── Column widths
+  cols.forEach(function(col,i){
+    var maxLen=col.length+2;
+    data.forEach(function(r){maxLen=Math.max(maxLen,String(r[col]||'').length+1);});
+    ws.getColumn(i+1).width=Math.min(Math.max(maxLen,12),40);
+  });
+
+  // ── Auto filter on header row
+  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:cols.length}};
+
+  // ── Download
+  var buf=await wb.xlsx.writeBuffer();
+  var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='RefMatch_Fusion.xlsx';a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════ STATS ═══════════════════════════════
+var statRows=[], statResult=[];
+
+// Detect if a word is alphabetic-only (a brand suffix)
+function isAlphaOnly(s){return /^[A-Za-zÀ-ÿ\-]+$/.test(s.trim());}
+
+function extractBrand(refRaw, marqueColVal){
+  // If a separate Marque column has a value, use it
+  if(marqueColVal && String(marqueColVal).trim() !== ''){
+    return {ref: String(refRaw).trim(), marque: String(marqueColVal).trim().toUpperCase()};
+  }
+  // Auto-detect: "05P884 LPR" → ref=05P884, marque=LPR
+  var ref = String(refRaw||'').trim();
+  var parts = ref.split(/\s+/);
+  if(parts.length >= 2){
+    // Check if every part from index 1 onward is alphabetic-only
+    var tail = parts.slice(1);
+    var allAlpha = tail.every(function(p){return isAlphaOnly(p);});
+    if(allAlpha){
+      return {ref: parts[0], marque: tail.join(' ').toUpperCase()};
+    }
+  }
+  return {ref: ref, marque: 'SANS MARQUE'};
+}
+
+function loadStatFile(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'binary'});
+      var data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      if(!data.length){alert('Fichier vide.');return;}
+      statRows=data;
+      var cols=Object.keys(data[0]);
+
+      // Fill mapping selects
+      fillSel('sc_ref',   cols, detect(cols,['référence','ref','reference','code']));
+      fillSel('sc_lib',   cols, detect(cols,['libellé','libelle','label','désignation','designation','nom']));
+      fillSel('sc_qt',    cols, detect(cols,['qt','qte','quantité','quantite','qty','stock']));
+      fillSel('sc_prix',  cols, detect(cols,['m.vente','vente ttc','prix ttc','prix','ttc','tarif','pvttc']));
+
+      // Marque select: add "auto" + all cols
+      var mSel=get('sc_marque');mSel.innerHTML='<option value="__auto__">— Détecter automatiquement —</option>';
+      cols.forEach(function(c){var o=document.createElement('option');o.value=o.textContent=c;mSel.appendChild(o);});
+      // Auto-select if a "marque" col exists
+      var mFound=detect(cols,['marque','brand','fabricant','fournisseur']);
+      if(mFound!==cols[0]){
+        for(var i=0;i<mSel.options.length;i++)if(mSel.options[i].value===mFound){mSel.selectedIndex=i;break;}
+      }
+
+      get('dzStat').classList.add('loaded');
+      get('icoStat').textContent='✅';
+      get('msgStat').innerHTML='<strong style="color:var(--success)">'+escH(file.name)+'</strong><br><span style="color:var(--success)">'+data.length+' lignes chargées</span>';
+      show('statFlds');show('btnStats');show('statStatus');setTxt('statStatus','✅ Fichier chargé — cliquez sur Calculer');
+    }catch(err){alert('Erreur : '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+
+function runStats(){
+  var colRef   = get('sc_ref').value;
+  var colLib   = get('sc_lib').value;
+  var colMarq  = get('sc_marque').value;
+  var colQt    = get('sc_qt').value;
+  var colPrix  = get('sc_prix').value;
+
+  setTxt('statStatus','⏳ Calcul en cours…');
+  hide('btnDlStats');hide('statKpiWrap');hide('statMarqueWrap');hide('statDetailWrap');
+
+  setTimeout(function(){
+    try{
+      statResult=[];
+      var marqueMap={};   // marque → {count, qty, ca}
+      var totalQty=0, totalCA=0;
+      var marques=new Set();
+
+      statRows.forEach(function(row){
+        var refRaw   = row[colRef]  || '';
+        var marqRaw  = colMarq==='__auto__' ? '' : (row[colMarq]||'');
+        var extracted= extractBrand(refRaw, marqRaw);
+        var cleanRef = extracted.ref;
+        var marque   = extracted.marque;
+
+        var lib   = String(row[colLib]  || '');
+        var qt    = parseFloat(String(row[colQt] ||'0').replace(',','.')) || 0;
+        var prix  = parseFloat(String(row[colPrix]||'0').replace(',','.').replace(/[^\d.\-]/g,'')) || 0;
+        var total = qt * prix;
+
+        totalQty += qt;
+        totalCA  += total;
+        marques.add(marque);
+
+        if(!marqueMap[marque]) marqueMap[marque]={count:0,qty:0,ca:0};
+        marqueMap[marque].count++;
+        marqueMap[marque].qty+=qt;
+        marqueMap[marque].ca+=total;
+
+        statResult.push({
+          'Référence Originale': String(refRaw),
+          'Référence Nettoyée': cleanRef,
+          'Marque Détectée': marque,
+          'Libellé': lib,
+          'Quantité': qt,
+          'Prix TTC': prix,
+          'Total TTC': Math.round(total*100)/100
+        });
+      });
+
+      // Build marque summary sorted by CA desc
+      var marqueList=Object.keys(marqueMap).map(function(m){
+        return{marque:m,count:marqueMap[m].count,qty:marqueMap[m].qty,ca:marqueMap[m].ca};
+      }).sort(function(a,b){return b.ca-a.ca;});
+
+      // KPIs
+      setTxt('kTotalProd', statResult.length);
+      setTxt('kMarques',   marqueList.length);
+      setTxt('kTotalQty',  fmtInt(totalQty));
+      setTxt('kTotalCA',   fmtNum(totalCA)+' DH');
+
+      // Render marque table
+      renderMarqueTable(marqueList, totalCA);
+
+      // Filter dropdown for detail
+      var fm=get('filterMarque');fm.innerHTML='<option value="">Toutes les marques</option>';
+      marqueList.forEach(function(m){var o=document.createElement('option');o.value=o.textContent=m.marque;fm.appendChild(o);});
+      renderDetail();
+
+      setTxt('statStatus','✅ '+statResult.length+' produits · '+marqueList.length+' marques · CA total : '+fmtNum(totalCA)+' DH');
+
+      // Top 50 by Prix TTC
+      var top50=[].concat(statResult).sort(function(a,b){return b['Prix TTC']-a['Prix TTC'];}).slice(0,50);
+      renderTop50(top50);
+
+      show('btnDlStats');show('statKpiWrap');show('statMarqueWrap');show('statTop50Wrap');show('statDetailWrap');
+    }catch(err){setTxt('statStatus','❌ Erreur : '+err.message);}
+  },100);
+}
+
+function renderMarqueTable(list, totalCA){
+  var html='';
+  list.forEach(function(m){
+    var pct=totalCA>0?((m.ca/totalCA)*100).toFixed(1):'0.0';
+    var barW=totalCA>0?Math.round((m.ca/totalCA)*100):0;
+    html+='<tr>'
+      +'<td><span class="badge b-pur">'+escH(m.marque)+'</span></td>'
+      +'<td class="mono">'+m.count+'</td>'
+      +'<td class="mono">'+fmtInt(m.qty)+'</td>'
+      +'<td class="mono" style="color:var(--success);font-weight:700">'+fmtNum(m.ca)+' DH</td>'
+      +'<td class="mono">'+fmtNum(m.count?m.ca/m.count:0)+' DH</td>'
+      +'<td>'
+        +'<div style="display:flex;align-items:center;gap:6px;">'
+          +'<div style="flex:1;height:4px;background:var(--border);border-radius:2px;min-width:50px">'
+            +'<div style="width:'+barW+'%;height:100%;background:var(--purple);border-radius:2px"></div>'
+          +'</div>'
+          +'<span class="mono" style="color:var(--purple);font-size:10px">'+pct+'%</span>'
+        +'</div>'
+      +'</td>'
+      +'</tr>';
+  });
+  get('marqueBody').innerHTML=html||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Aucun résultat</td></tr>';
+}
+
+function renderTop50(rows){
+  var html='';
+  rows.forEach(function(r,i){
+    var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    var rankColor=i<3?'var(--warning)':i<10?'var(--accent)':'var(--muted)';
+    html+='<tr>'
+      +'<td style="font-family:var(--mono);font-weight:700;color:'+rankColor+';text-align:center">'+(medal||'#'+(i+1))+'</td>'
+      +'<td class="mono">'+escH(r['Référence Nettoyée'])+'</td>'
+      +'<td><span class="badge b-pur">'+escH(r['Marque Détectée'])+'</span></td>'
+      +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escH(r['Libellé'])+'</td>'
+      +'<td class="mono">'+fmtInt(r['Quantité'])+'</td>'
+      +'<td class="mono" style="color:var(--warning);font-weight:700;font-size:13px">'+fmtNum(r['Prix TTC'])+' DH</td>'
+      +'<td class="mono" style="color:var(--success);font-weight:700">'+fmtNum(r['Total TTC'])+' DH</td>'
+      +'</tr>';
+  });
+  get('top50Body').innerHTML=html||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Aucun résultat</td></tr>';
+}
+
+function renderDetail(){
+  var filter=get('filterMarque').value;
+  var rows=filter?statResult.filter(function(r){return r['Marque Détectée']===filter;}):statResult;
+  var html='',lim=Math.min(rows.length,500);
+  for(var i=0;i<lim;i++){
+    var r=rows[i];
+    html+='<tr>'
+      +'<td class="mono">'+escH(r['Référence Nettoyée'])+'</td>'
+      +'<td><span class="badge b-pur">'+escH(r['Marque Détectée'])+'</span></td>'
+      +'<td>'+escH(r['Libellé'])+'</td>'
+      +'<td class="mono">'+fmtInt(r['Quantité'])+'</td>'
+      +'<td class="mono">'+fmtNum(r['Prix TTC'])+'</td>'
+      +'<td class="mono" style="color:var(--success);font-weight:700">'+fmtNum(r['Total TTC'])+' DH</td>'
+      +'</tr>';
+  }
+  if(rows.length>500)html+='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:10px;font-size:10px;font-family:var(--mono)">+ '+(rows.length-500)+' lignes dans le fichier exporté</td></tr>';
+  get('detailBody').innerHTML=html||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Aucun résultat</td></tr>';
+}
+
+async function downloadStats(){
+  if(!statResult.length)return;
+
+  // ── Palette (matching website)
+  var C = {
+  bg:      'F8F9FC', // Soft off-white
+  surface: 'FFFFFF', // Pure white
+  surface2:'F1F5F9', // Light grayish-blue for depth
+  accent:  '007AFF', // iOS-style vibrant blue (replaces neon cyan)
+  success: '10B981', // Refreshing emerald
+  warning: 'F59E0B', // Soft amber
+  purple:  '7C3AED', // Deeper violet for better legibility
+  muted:   '64748B', // Slate gray for secondary info
+  text:    '0F172A', // Near-black slate for crisp reading
+  black:   '000000', // Kept as absolute
+  white:   'FFFFFF'  // Kept as absolute
+  };
+
+  var totalCA=statResult.reduce(function(s,r){return s+r['Total TTC'];},0);
+  var totalQty=statResult.reduce(function(s,r){return s+r['Quantité'];},0);
+
+  // ── Build marque summary
+  var marqueMap={};
+  statResult.forEach(function(r){
+    var m=r['Marque Détectée'];
+    if(!marqueMap[m])marqueMap[m]={marque:m,count:0,qty:0,ca:0};
+    marqueMap[m].count++;marqueMap[m].qty+=r['Quantité'];marqueMap[m].ca+=r['Total TTC'];
+  });
+  var marqueList=Object.values(marqueMap).sort(function(a,b){return b.ca-a.ca;});
+  var nbMarques=marqueList.length;
+
+  var wb=new ExcelJS.Workbook();
+  wb.creator='RefMatch';wb.created=new Date();
+
+  // ══════════════════ SHEET 1 : STATS PAR MARQUE ══════════════════
+  var ws1=wb.addWorksheet('Stats par Marque',{views:[{state:'frozen',ySplit:6}]});
+
+  function hStyle(cell,txt,fgArgb,fontArgb,sz,bold){
+    cell.value=txt;
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+fgArgb}};
+    cell.font={name:'Calibri',size:sz||10,bold:!!bold,color:{argb:'FF'+(fontArgb||C.text)}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.border={bottom:{style:'thin',color:{argb:'FF'+C.surface2}}};
+  }
+
+  var NCOLS=6; // Marque | Nb Produits | Qté Totale | CA Total TTC | CA Moyen/prod | % CA
+
+  // Row 1 — Big title
+  ws1.mergeCells(1,1,1,NCOLS);
+  hStyle(ws1.getCell(1,1),'▦  STATISTIQUES PRODUITS PAR MARQUE — RefMatch',C.surface2,C.purple,14,true);
+  ws1.getRow(1).height=34;
+
+  // Row 2 — Date
+  ws1.mergeCells(2,1,2,NCOLS);
+  hStyle(ws1.getCell(2,1),'Généré le '+new Date().toLocaleDateString('fr-FR'),C.surface,C.muted,9,false);
+  ws1.getRow(2).height=16;
+
+  // Rows 3-5 — KPI cards
+  // Row 3 labels
+  var kpiLabels=['PRODUITS','MARQUES','QTÉ TOTALE','CA TOTAL TTC'];
+  var kpiValues=[statResult.length, nbMarques, Math.round(totalQty), totalCA.toFixed(2)+' DH'];
+  var kpiColors=[C.purple, C.accent, C.success, C.warning];
+  // merge in groups
+  var kpiCols=[[1,1],[2,2],[3,3],[4,6]];
+  ws1.getRow(3).height=14;
+  ws1.getRow(4).height=26;
+  ws1.getRow(5).height=14;
+  kpiCols.forEach(function(range,i){
+    ws1.mergeCells(3,range[0],3,range[1]);
+    ws1.mergeCells(4,range[0],4,range[1]);
+    ws1.mergeCells(5,range[0],5,range[1]);
+    var lCell=ws1.getCell(3,range[0]);
+    lCell.value=kpiLabels[i];
+    lCell.font={name:'Calibri',size:8,bold:true,color:{argb:'FF'+C.muted}};
+    lCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface}};
+    lCell.alignment={horizontal:'center',vertical:'bottom'};
+    var vCell=ws1.getCell(4,range[0]);
+    vCell.value=kpiValues[i];
+    vCell.font={name:'Calibri',size:16,bold:true,color:{argb:'FF'+kpiColors[i]}};
+    vCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface}};
+    vCell.alignment={horizontal:'center',vertical:'middle'};
+    var bCell=ws1.getCell(5,range[0]);
+    bCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface}};
+    bCell.border={bottom:{style:'medium',color:{argb:'FF'+kpiColors[i]}}};
+  });
+
+  // Row 6 — Table header
+  ws1.getRow(6).height=22;
+  var sh1Hdrs=['Marque','Nb Produits','Quantité Totale','CA Total TTC (DH)','CA Moyen/Produit (DH)','% du CA Total'];
+  sh1Hdrs.forEach(function(h,i){
+    var cell=ws1.getCell(6,i+1);
+    cell.value=h.toUpperCase();
+    cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.black}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.purple}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.border={bottom:{style:'thin',color:{argb:'FF'+C.surface2}}};
+  });
+
+  // Data rows
+  marqueList.forEach(function(m,ri){
+    var rowNum=ri+7;
+    var isEven=ri%2===0;
+    var bg=isEven?C.surface:C.bg;
+    var pct=totalCA>0?((m.ca/totalCA)*100):0;
+    var rowData=[m.marque, m.count, m.qty, Math.round(m.ca*100)/100, m.count?Math.round((m.ca/m.count)*100)/100:0, Math.round(pct*100)/100];
+
+    rowData.forEach(function(val,ci){
+      var cell=ws1.getCell(rowNum,ci+1);
+      cell.value=val;
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
+      cell.font={name:'Calibri',size:9,color:{argb:'FF'+C.text}};
+      cell.alignment={vertical:'middle',horizontal:ci===0?'left':'center'};
+      // Marque badge color
+      if(ci===0){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.purple}};}
+      // CA column green bold
+      if(ci===3){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.success}};cell.numFmt='#,##0.00';}
+      if(ci===4){cell.numFmt='#,##0.00';}
+      if(ci===5){cell.numFmt='0.00"%"';cell.font={name:'Calibri',size:9,color:{argb:'FF'+C.accent}};}
+      if(ci===1||ci===2){cell.numFmt='#,##0';}
+    });
+    ws1.getRow(rowNum).height=18;
+  });
+
+  // TOTAL row
+  var totalRowNum=marqueList.length+7;
+  ws1.getRow(totalRowNum).height=22;
+  var totData=['TOTAL', statResult.length, Math.round(totalQty), Math.round(totalCA*100)/100, '', 100];
+  totData.forEach(function(val,ci){
+    var cell=ws1.getCell(totalRowNum,ci+1);
+    cell.value=val;
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
+    cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.accent}};
+    cell.alignment={vertical:'middle',horizontal:ci===0?'left':'center'};
+    cell.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
+    if(ci===3){cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.success}};cell.numFmt='#,##0.00';}
+    if(ci===5){cell.numFmt='0.00"%"';}
+    if(ci===1||ci===2){cell.numFmt='#,##0';}
+  });
+
+  // Column widths sheet1
+  [22,14,16,20,22,14].forEach(function(w,i){ws1.getColumn(i+1).width=w;});
+  ws1.autoFilter={from:{row:6,column:1},to:{row:6,column:NCOLS}};
+
+  // ── TOP 50 section appended on the same sheet, after a gap
+  var top50data=[].concat(statResult).sort(function(a,b){return b['Prix TTC']-a['Prix TTC'];}).slice(0,50);
+  var t50StartRow = totalRowNum + 3; // 2 blank rows gap
+
+  // Section title
+  ws1.mergeCells(t50StartRow, 1, t50StartRow, NCOLS);
+  hStyle(ws1.getCell(t50StartRow,1),'🏆  TOP 50 — PRODUITS LES PLUS CHERS (M.VENTE TTC)',C.surface2,C.warning,12,true);
+  ws1.getRow(t50StartRow).height=28;
+
+  // Subtitle
+  ws1.mergeCells(t50StartRow+1, 1, t50StartRow+1, NCOLS);
+  hStyle(ws1.getCell(t50StartRow+1,1),'Triés par Prix TTC décroissant',C.surface,C.muted,9,false);
+  ws1.getRow(t50StartRow+1).height=15;
+
+  // Header
+  var t50HdrRow = t50StartRow + 2;
+  ws1.getRow(t50HdrRow).height=20;
+  var t50hdrs=['#','Référence','Marque','Libellé','Quantité','Prix TTC','Total TTC'];
+  t50hdrs.forEach(function(h,i){
+    var cell=ws1.getCell(t50HdrRow, i+1);
+    cell.value=h.toUpperCase();
+    cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.black}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.warning}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+  });
+
+  // Data rows
+  top50data.forEach(function(r,ri){
+    var rowNum=t50HdrRow+1+ri;
+    var bg=ri%2===0?C.surface:C.bg;
+    var rankColor=ri<3?C.warning:ri<10?C.accent:C.muted;
+    var rankLabel=ri===0?'#1 ★':ri===1?'#2':ri===2?'#3':''+(ri+1);
+    var vals=[rankLabel, r['Référence Nettoyée'], r['Marque Détectée'], r['Libellé'], r['Quantité'], r['Prix TTC'], r['Total TTC']];
+    vals.forEach(function(val,ci){
+      var cell=ws1.getCell(rowNum,ci+1);
+      cell.value=val;
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+(ri<3?'1A1500':bg)}};
+      cell.font={name:'Calibri',size:9,color:{argb:'FF'+C.text}};
+      cell.alignment={vertical:'middle',horizontal:ci===3?'left':'center'};
+      if(ci===0){cell.font={name:'Calibri',size:ri<3?11:9,bold:ri<3,color:{argb:'FF'+rankColor}};}
+      if(ci===2){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.purple}};}
+      if(ci===5){cell.font={name:'Calibri',size:ri<3?12:10,bold:true,color:{argb:'FF'+C.warning}};cell.numFmt='#,##0.00';}
+      if(ci===6){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.success}};cell.numFmt='#,##0.00';}
+      if(ci===4){cell.numFmt='#,##0';}
+    });
+    ws1.getRow(rowNum).height=ri<3?22:17;
+  });
+
+  // Adjust col widths to fit Top 50 (Libellé and Référence may need more space)
+  ws1.getColumn(1).width=10;
+  ws1.getColumn(4).width=42;
+
+  // ══════════════════ SHEET 2 : DÉTAIL PRODUITS ═══════════════════
+  var ws2=wb.addWorksheet('Détail Produits',{views:[{state:'frozen',ySplit:3}]});
+  var detCols=['Référence Originale','Référence Nettoyée','Marque Détectée','Libellé','Quantité','Prix TTC','Total TTC'];
+
+  // Title
+  ws2.mergeCells(1,1,1,detCols.length);
+  hStyle(ws2.getCell(1,1),'DÉTAIL PRODUITS — '+statResult.length+' lignes',C.surface2,C.accent,12,true);
+  ws2.getRow(1).height=28;
+
+  // Sub title
+  ws2.mergeCells(2,1,2,detCols.length);
+  hStyle(ws2.getCell(2,1),'CA Total TTC: '+totalCA.toFixed(2)+' DH  |  Quantité Totale: '+Math.round(totalQty)+'  |  Marques: '+nbMarques,C.surface,C.muted,9,false);
+  ws2.getRow(2).height=18;
+
+  // Header
+  ws2.getRow(3).height=22;
+  detCols.forEach(function(h,i){
+    var cell=ws2.getCell(3,i+1);
+    cell.value=h.toUpperCase();
+    cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.black}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.accent}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+  });
+
+  // Data
+  statResult.forEach(function(r,ri){
+    var rowNum=ri+4;
+    var isEven=ri%2===0;
+    var bg=isEven?C.surface:C.bg;
+    var vals=[r['Référence Originale'],r['Référence Nettoyée'],r['Marque Détectée'],r['Libellé'],r['Quantité'],r['Prix TTC'],r['Total TTC']];
+    vals.forEach(function(val,ci){
+      var cell=ws2.getCell(rowNum,ci+1);
+      cell.value=val;
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
+      cell.font={name:'Calibri',size:9,color:{argb:'FF'+C.text}};
+      cell.alignment={vertical:'middle',horizontal:ci<=3?'left':'center'};
+      if(ci===2){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.purple}};}
+      if(ci===6){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.success}};cell.numFmt='#,##0.00';}
+      if(ci===5){cell.numFmt='#,##0.00';}
+      if(ci===4){cell.numFmt='#,##0';}
+    });
+    ws2.getRow(rowNum).height=17;
+  });
+
+  // TOTAL row sheet2
+  var tr2=statResult.length+4;
+  ws2.getRow(tr2).height=22;
+  ws2.mergeCells(tr2,1,tr2,4);
+  var tc=ws2.getCell(tr2,1);
+  tc.value='TOTAL GÉNÉRAL';
+  tc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
+  tc.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.accent}};
+  tc.alignment={vertical:'middle',horizontal:'left'};
+  tc.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
+  [[5,Math.round(totalQty),'#,##0',C.success],[6,'','',C.text],[7,Math.round(totalCA*100)/100,'#,##0.00',C.success]].forEach(function(spec,i){
+    var cell=ws2.getCell(tr2,spec[0]);
+    cell.value=spec[1];
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
+    cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+spec[3]}};
+    cell.numFmt=spec[2];
+    cell.alignment={vertical:'middle',horizontal:'center'};
+    cell.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
+  });
+
+  // Column widths sheet2
+  [22,18,16,40,12,14,16].forEach(function(w,i){ws2.getColumn(i+1).width=w;});
+  ws2.autoFilter={from:{row:3,column:1},to:{row:3,column:detCols.length}};
+
+  // ══════════════════ SHEET 3 : TOP 50 PRIX ═══════════════════════
+  var top50data=[].concat(statResult).sort(function(a,b){return b['Prix TTC']-a['Prix TTC'];}).slice(0,50);
+  var ws3=wb.addWorksheet('Top 50 Prix',{views:[{state:'frozen',ySplit:3}]});
+  var t50cols=['Rang','Référence Nettoyée','Marque Détectée','Libellé','Quantité','Prix TTC','Total TTC'];
+
+  // Title
+  ws3.mergeCells(1,1,1,t50cols.length);
+  hStyle(ws3.getCell(1,1),'TOP 50 PRODUITS — PRIX LES PLUS ÉLEVÉS',C.surface2,C.warning,13,true);
+  ws3.getRow(1).height=30;
+
+  // Subtitle
+  ws3.mergeCells(2,1,2,t50cols.length);
+  hStyle(ws3.getCell(2,1),'Triés par M.vente TTC décroissant · Généré le '+new Date().toLocaleDateString('fr-FR'),C.surface,C.muted,9,false);
+  ws3.getRow(2).height=16;
+
+  // Header row
+  ws3.getRow(3).height=22;
+  t50cols.forEach(function(h,i){
+    var cell=ws3.getCell(3,i+1);
+    cell.value=h.toUpperCase();
+    cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.black}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.warning}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.border={bottom:{style:'thin',color:{argb:'FF'+C.surface2}}};
+  });
+
+  // Data rows
+  top50data.forEach(function(r,ri){
+    var rowNum=ri+4;
+    var bg=ri%2===0?C.surface:C.bg;
+    var rankColor=ri<3?C.warning:ri<10?C.accent:C.muted;
+    var rankLabel=ri===0?'#1':ri===1?'#2':ri===2?'#3':'#'+(ri+1);
+    var vals=[rankLabel, r['Référence Nettoyée'], r['Marque Détectée'], r['Libellé'], r['Quantité'], r['Prix TTC'], r['Total TTC']];
+    vals.forEach(function(val,ci){
+      var cell=ws3.getCell(rowNum,ci+1);
+      cell.value=val;
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+(ri<3?'1A1500':bg)}};
+      cell.font={name:'Calibri',size:9,color:{argb:'FF'+C.text}};
+      cell.alignment={vertical:'middle',horizontal:ci===3?'left':'center'};
+      if(ci===0){cell.font={name:'Calibri',size:ri<3?11:9,bold:ri<3,color:{argb:'FF'+rankColor}};}
+      if(ci===2){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.purple}};}
+      if(ci===5){cell.font={name:'Calibri',size:ri<3?12:10,bold:true,color:{argb:'FF'+C.warning}};cell.numFmt='#,##0.00';}
+      if(ci===6){cell.font={name:'Calibri',size:9,bold:true,color:{argb:'FF'+C.success}};cell.numFmt='#,##0.00';}
+      if(ci===4){cell.numFmt='#,##0';}
+    });
+    ws3.getRow(rowNum).height=ri<3?22:18;
+  });
+  [8,20,16,42,10,16,16].forEach(function(w,i){ws3.getColumn(i+1).width=w;});
+  ws3.autoFilter={from:{row:3,column:1},to:{row:3,column:t50cols.length}};
+
+  // ── Download (3 sheets: Stats par Marque, Détail Produits, Top 50 Prix)
+  var buf=await wb.xlsx.writeBuffer();
+  var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='RefMatch_Stats.xlsx';a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════ EVENTS ══════════════════════════════
+get('seuil').addEventListener('input',function(){get('seuilVal').textContent=this.value+'%';});
+get('f1').addEventListener('change',function(){loadFusionFile(1,this);});
+get('f2').addEventListener('change',function(){loadFusionFile(2,this);});
+get('fStat').addEventListener('change',function(){loadStatFile(this);});
+
+[1,2].forEach(function(n){
+  var dz=get('dz'+n);
+  dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over');});
+  dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
+  dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');var f=e.dataTransfer.files[0];if(f)loadFusionFile(n,{files:[f]});});
+});
+var dzS=get('dzStat');
+dzS.addEventListener('dragover',function(e){e.preventDefault();dzS.classList.add('over-p');});
+dzS.addEventListener('dragleave',function(){dzS.classList.remove('over-p');});
+dzS.addEventListener('drop',function(e){e.preventDefault();dzS.classList.remove('over-p');var f=e.dataTransfer.files[0];if(f)loadStatFile({files:[f]});});
+</script>
+</body>
+</html>
