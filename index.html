@@ -260,11 +260,12 @@ td{padding:8px 12px;vertical-align:middle;}
 
   <!-- KPI CARDS -->
   <div class="hidden" id="statKpiWrap">
-    <div class="stats" style="grid-template-columns:repeat(4,1fr);">
+    <div class="stats" style="grid-template-columns:repeat(5,1fr);">
       <div class="stat"><div class="stat-n c-purple" id="kTotalProd">0</div><div class="stat-l">Produits</div></div>
       <div class="stat"><div class="stat-n c-accent"  id="kMarques">0</div><div class="stat-l">Marques</div></div>
       <div class="stat"><div class="stat-n c-ok"      id="kTotalQty">0</div><div class="stat-l">Qté totale</div></div>
       <div class="stat"><div class="stat-n c-no"      id="kTotalCA">—</div><div class="stat-l">CA Total TTC</div></div>
+      <div class="stat" style="border-color:rgba(255,71,87,.4);"><div class="stat-n" style="color:#ff4757;font-size:18px;" id="kTotalCARemise">—</div><div class="stat-l" style="color:#ff4757;">Après remise -35%</div></div>
     </div>
   </div>
 
@@ -659,10 +660,12 @@ function runStats(){
       }).sort(function(a,b){return b.ca-a.ca;});
 
       // KPIs
+      var caApresRemise = totalCA * 0.65;
       setTxt('kTotalProd', statResult.length);
       setTxt('kMarques',   marqueList.length);
       setTxt('kTotalQty',  fmtInt(totalQty));
       setTxt('kTotalCA',   fmtNum(totalCA)+' DH');
+      setTxt('kTotalCARemise', fmtNum(caApresRemise)+' DH');
 
       // Render marque table
       renderMarqueTable(marqueList, totalCA);
@@ -672,7 +675,7 @@ function runStats(){
       marqueList.forEach(function(m){var o=document.createElement('option');o.value=o.textContent=m.marque;fm.appendChild(o);});
       renderDetail();
 
-      setTxt('statStatus','✅ '+statResult.length+' produits · '+marqueList.length+' marques · CA total : '+fmtNum(totalCA)+' DH');
+      setTxt('statStatus','✅ '+statResult.length+' produits · '+marqueList.length+' marques · CA total : '+fmtNum(totalCA)+' DH · Après remise -35% : '+fmtNum(caApresRemise)+' DH');
 
       // Top 50 by Prix TTC
       var top50=[].concat(statResult).sort(function(a,b){return b['Prix TTC']-a['Prix TTC'];}).slice(0,50);
@@ -883,13 +886,38 @@ async function downloadStats(){
     if(ci===1||ci===2){cell.numFmt='#,##0';}
   });
 
+  // REMISE -35% row
+  var remiseRowNum=totalRowNum+1;
+  ws1.getRow(remiseRowNum).height=20;
+  ws1.mergeCells(remiseRowNum,1,remiseRowNum,2);
+  var remiseLabel=ws1.getCell(remiseRowNum,1);
+  remiseLabel.value='Après remise -35%';
+  remiseLabel.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
+  remiseLabel.font={name:'Calibri',size:10,bold:true,color:{argb:'FFFF4757'}};
+  remiseLabel.alignment={vertical:'middle',horizontal:'left'};
+  remiseLabel.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+  // empty cols 2 (merged), 3, 5, 6
+  [3,5,6].forEach(function(c){
+    var cell=ws1.getCell(remiseRowNum,c);
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
+    cell.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+  });
+  // CA après remise in col 4
+  var remiseVal=ws1.getCell(remiseRowNum,4);
+  remiseVal.value=Math.round(totalCA*0.65*100)/100;
+  remiseVal.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
+  remiseVal.font={name:'Calibri',size:12,bold:true,color:{argb:'FFFF4757'}};
+  remiseVal.numFmt='#,##0.00';
+  remiseVal.alignment={vertical:'middle',horizontal:'center'};
+  remiseVal.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+
   // Column widths sheet1
   [22,14,16,20,22,14].forEach(function(w,i){ws1.getColumn(i+1).width=w;});
   ws1.autoFilter={from:{row:6,column:1},to:{row:6,column:NCOLS}};
 
   // ── TOP 50 section appended on the same sheet, after a gap
   var top50data=[].concat(statResult).sort(function(a,b){return b['Prix TTC']-a['Prix TTC'];}).slice(0,50);
-  var t50StartRow = totalRowNum + 3; // 2 blank rows gap
+  var t50StartRow = remiseRowNum + 3; // 2 blank rows gap after remise row
 
   // Section title
   ws1.mergeCells(t50StartRow, 1, t50StartRow, NCOLS);
@@ -1002,6 +1030,29 @@ async function downloadStats(){
     cell.alignment={vertical:'middle',horizontal:'center'};
     cell.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
   });
+
+  // REMISE -35% row on ws2
+  var tr2remise=tr2+1;
+  ws2.getRow(tr2remise).height=20;
+  ws2.mergeCells(tr2remise,1,tr2remise,4);
+  var tr2remLabel=ws2.getCell(tr2remise,1);
+  tr2remLabel.value='Après remise -35%';
+  tr2remLabel.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
+  tr2remLabel.font={name:'Calibri',size:10,bold:true,color:{argb:'FFFF4757'}};
+  tr2remLabel.alignment={vertical:'middle',horizontal:'left'};
+  tr2remLabel.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+  [5,6].forEach(function(c){
+    var cell=ws2.getCell(tr2remise,c);
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
+    cell.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+  });
+  var tr2remVal=ws2.getCell(tr2remise,7);
+  tr2remVal.value=Math.round(totalCA*0.65*100)/100;
+  tr2remVal.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
+  tr2remVal.font={name:'Calibri',size:12,bold:true,color:{argb:'FFFF4757'}};
+  tr2remVal.numFmt='#,##0.00';
+  tr2remVal.alignment={vertical:'middle',horizontal:'center'};
+  tr2remVal.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
 
   // Column widths sheet2
   [22,18,16,40,12,14,16].forEach(function(w,i){ws2.getColumn(i+1).width=w;});
