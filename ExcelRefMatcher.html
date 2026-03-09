@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RefMatch — Fusion & Stats Excel</title>
+<title>ExcelWordHelper — Fusion & Stats Excel</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -140,7 +140,7 @@ td{padding:8px 12px;vertical-align:middle;}
 <div class="wrap">
 
 <header>
-  <div class="chip">⬡ REFMATCH</div>
+  <div class="chip">⬡ ExcelWordHelper</div>
   <h1><em>Fusion</em> & <em style="color:var(--purple)">Statistiques</em> Excel</h1>
   <p class="sub">Fusion intelligente par similarité · Statistiques produits par marque</p>
 </header>
@@ -448,7 +448,7 @@ async function downloadFusion(){
   var cols=Object.keys(data[0]||{});
 
   var wb=new ExcelJS.Workbook();
-  wb.creator='RefMatch'; wb.created=new Date();
+  wb.creator='ExcelWordHelper'; wb.created=new Date();
   var ws=wb.addWorksheet('Fusion',{views:[{state:'frozen',ySplit:3}]});
 
   // ── Palette
@@ -457,7 +457,7 @@ async function downloadFusion(){
   // ── Title row (row 1)
   ws.mergeCells(1,1,1,cols.length);
   var titleCell=ws.getCell(1,1);
-  titleCell.value='⇄  FUSION PAR RÉFÉRENCE — RefMatch';
+  titleCell.value='⇄  FUSION PAR RÉFÉRENCE — ExcelWordHelper';
   titleCell.font={name:'Calibri',size:14,bold:true,color:{argb:'FF'+C.accent}};
   titleCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
   titleCell.alignment={horizontal:'center',vertical:'middle'};
@@ -776,7 +776,7 @@ async function downloadStats(){
   var nbMarques=marqueList.length;
 
   var wb=new ExcelJS.Workbook();
-  wb.creator='RefMatch';wb.created=new Date();
+  wb.creator='ExcelWordHelper';wb.created=new Date();
 
   // ══════════════════ SHEET 1 : STATS PAR MARQUE ══════════════════
   var ws1=wb.addWorksheet('Stats par Marque',{views:[{state:'frozen',ySplit:6}]});
@@ -793,7 +793,7 @@ async function downloadStats(){
 
   // Row 1 — Big title
   ws1.mergeCells(1,1,1,NCOLS);
-  hStyle(ws1.getCell(1,1),'▦  STATISTIQUES PRODUITS PAR MARQUE — RefMatch',C.surface2,C.purple,14,true);
+  hStyle(ws1.getCell(1,1),'▦  STATISTIQUES PRODUITS PAR MARQUE — ExcelWordHelper',C.surface2,C.purple,14,true);
   ws1.getRow(1).height=34;
 
   // Row 2 — Date
