@@ -870,46 +870,43 @@ async function downloadStats(){
     ws1.getRow(rowNum).height=18;
   });
 
-  // TOTAL row
+  // TOTAL row ws1
   var totalRowNum=marqueList.length+7;
-  ws1.getRow(totalRowNum).height=22;
-  var totData=['TOTAL', statResult.length, Math.round(totalQty), Math.round(totalCA*100)/100, '', 100];
-  totData.forEach(function(val,ci){
+  ws1.getRow(totalRowNum).height=24;
+  for(var ci=0;ci<NCOLS;ci++){
     var cell=ws1.getCell(totalRowNum,ci+1);
-    cell.value=val;
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
     cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.accent}};
     cell.alignment={vertical:'middle',horizontal:ci===0?'left':'center'};
     cell.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
-    if(ci===3){cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.success}};cell.numFmt='#,##0.00';}
-    if(ci===5){cell.numFmt='0.00"%"';}
-    if(ci===1||ci===2){cell.numFmt='#,##0';}
-  });
+  }
+  ws1.getCell(totalRowNum,1).value='TOTAL';
+  ws1.getCell(totalRowNum,2).value=statResult.length; ws1.getCell(totalRowNum,2).numFmt='#,##0';
+  ws1.getCell(totalRowNum,3).value=Math.round(totalQty); ws1.getCell(totalRowNum,3).numFmt='#,##0';
+  ws1.getCell(totalRowNum,4).value=Math.round(totalCA*100)/100;
+  ws1.getCell(totalRowNum,4).numFmt='#,##0.00';
+  ws1.getCell(totalRowNum,4).font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.success}};
+  ws1.getCell(totalRowNum,6).value=100; ws1.getCell(totalRowNum,6).numFmt='0.00"%"';
 
-  // REMISE -35% row
+  // REMISE -35% row ws1
   var remiseRowNum=totalRowNum+1;
-  ws1.getRow(remiseRowNum).height=20;
-  ws1.mergeCells(remiseRowNum,1,remiseRowNum,2);
-  var remiseLabel=ws1.getCell(remiseRowNum,1);
-  remiseLabel.value='Après remise -35%';
-  remiseLabel.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
-  remiseLabel.font={name:'Calibri',size:10,bold:true,color:{argb:'FFFF4757'}};
-  remiseLabel.alignment={vertical:'middle',horizontal:'left'};
-  remiseLabel.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
-  // empty cols 2 (merged), 3, 5, 6
-  [3,5,6].forEach(function(c){
-    var cell=ws1.getCell(remiseRowNum,c);
+  ws1.getRow(remiseRowNum).height=22;
+  for(var ci=0;ci<NCOLS;ci++){
+    var cell=ws1.getCell(remiseRowNum,ci+1);
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
-    cell.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
-  });
-  // CA après remise in col 4
-  var remiseVal=ws1.getCell(remiseRowNum,4);
-  remiseVal.value=Math.round(totalCA*0.65*100)/100;
-  remiseVal.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
-  remiseVal.font={name:'Calibri',size:12,bold:true,color:{argb:'FFFF4757'}};
-  remiseVal.numFmt='#,##0.00';
-  remiseVal.alignment={vertical:'middle',horizontal:'center'};
-  remiseVal.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+    cell.border={top:{style:'thin',color:{argb:'FF550010'}},bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+    cell.font={name:'Calibri',size:9,color:{argb:'FF550010'}};
+  }
+  ws1.getCell(remiseRowNum,1).value='Après remise -35%';
+  ws1.getCell(remiseRowNum,1).font={name:'Calibri',size:10,bold:true,color:{argb:'FFFF4757'}};
+  ws1.getCell(remiseRowNum,1).alignment={vertical:'middle',horizontal:'left'};
+  ws1.getCell(remiseRowNum,4).value=Math.round(totalCA*0.65*100)/100;
+  ws1.getCell(remiseRowNum,4).numFmt='#,##0.00';
+  ws1.getCell(remiseRowNum,4).font={name:'Calibri',size:12,bold:true,color:{argb:'FFFF4757'}};
+  ws1.getCell(remiseRowNum,4).alignment={vertical:'middle',horizontal:'center'};
+  ws1.getCell(remiseRowNum,2).value='-35%';
+  ws1.getCell(remiseRowNum,2).font={name:'Calibri',size:9,bold:true,color:{argb:'FFFF4757'}};
+  ws1.getCell(remiseRowNum,2).alignment={vertical:'middle',horizontal:'center'};
 
   // Column widths sheet1
   [22,14,16,20,22,14].forEach(function(w,i){ws1.getColumn(i+1).width=w;});
@@ -1013,46 +1010,40 @@ async function downloadStats(){
 
   // TOTAL row sheet2
   var tr2=statResult.length+4;
-  ws2.getRow(tr2).height=22;
-  ws2.mergeCells(tr2,1,tr2,4);
-  var tc=ws2.getCell(tr2,1);
-  tc.value='TOTAL GÉNÉRAL';
-  tc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
-  tc.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.accent}};
-  tc.alignment={vertical:'middle',horizontal:'left'};
-  tc.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
-  [[5,Math.round(totalQty),'#,##0',C.success],[6,'','',C.text],[7,Math.round(totalCA*100)/100,'#,##0.00',C.success]].forEach(function(spec,i){
-    var cell=ws2.getCell(tr2,spec[0]);
-    cell.value=spec[1];
+  ws2.getRow(tr2).height=24;
+  for(var ci=0;ci<detCols.length;ci++){
+    var cell=ws2.getCell(tr2,ci+1);
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
-    cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+spec[3]}};
-    cell.numFmt=spec[2];
+    cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.accent}};
     cell.alignment={vertical:'middle',horizontal:'center'};
     cell.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
-  });
+  }
+  ws2.getCell(tr2,1).value='TOTAL GÉNÉRAL';
+  ws2.getCell(tr2,1).alignment={vertical:'middle',horizontal:'left'};
+  ws2.getCell(tr2,5).value=Math.round(totalQty); ws2.getCell(tr2,5).numFmt='#,##0';
+  ws2.getCell(tr2,7).value=Math.round(totalCA*100)/100;
+  ws2.getCell(tr2,7).numFmt='#,##0.00';
+  ws2.getCell(tr2,7).font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.success}};
 
-  // REMISE -35% row on ws2
+  // REMISE -35% row ws2
   var tr2remise=tr2+1;
-  ws2.getRow(tr2remise).height=20;
-  ws2.mergeCells(tr2remise,1,tr2remise,4);
-  var tr2remLabel=ws2.getCell(tr2remise,1);
-  tr2remLabel.value='Après remise -35%';
-  tr2remLabel.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
-  tr2remLabel.font={name:'Calibri',size:10,bold:true,color:{argb:'FFFF4757'}};
-  tr2remLabel.alignment={vertical:'middle',horizontal:'left'};
-  tr2remLabel.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
-  [5,6].forEach(function(c){
-    var cell=ws2.getCell(tr2remise,c);
+  ws2.getRow(tr2remise).height=22;
+  for(var ci=0;ci<detCols.length;ci++){
+    var cell=ws2.getCell(tr2remise,ci+1);
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
-    cell.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
-  });
-  var tr2remVal=ws2.getCell(tr2remise,7);
-  tr2remVal.value=Math.round(totalCA*0.65*100)/100;
-  tr2remVal.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
-  tr2remVal.font={name:'Calibri',size:12,bold:true,color:{argb:'FFFF4757'}};
-  tr2remVal.numFmt='#,##0.00';
-  tr2remVal.alignment={vertical:'middle',horizontal:'center'};
-  tr2remVal.border={bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+    cell.border={top:{style:'thin',color:{argb:'FF550010'}},bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+    cell.font={name:'Calibri',size:9,color:{argb:'FF550010'}};
+  }
+  ws2.getCell(tr2remise,1).value='Après remise -35%';
+  ws2.getCell(tr2remise,1).font={name:'Calibri',size:10,bold:true,color:{argb:'FFFF4757'}};
+  ws2.getCell(tr2remise,1).alignment={vertical:'middle',horizontal:'left'};
+  ws2.getCell(tr2remise,2).value='-35%';
+  ws2.getCell(tr2remise,2).font={name:'Calibri',size:9,bold:true,color:{argb:'FFFF4757'}};
+  ws2.getCell(tr2remise,2).alignment={vertical:'middle',horizontal:'center'};
+  ws2.getCell(tr2remise,7).value=Math.round(totalCA*0.65*100)/100;
+  ws2.getCell(tr2remise,7).numFmt='#,##0.00';
+  ws2.getCell(tr2remise,7).font={name:'Calibri',size:12,bold:true,color:{argb:'FFFF4757'}};
+  ws2.getCell(tr2remise,7).alignment={vertical:'middle',horizontal:'center'};
 
   // Column widths sheet2
   [22,18,16,40,12,14,16].forEach(function(w,i){ws2.getColumn(i+1).width=w;});
@@ -1107,6 +1098,43 @@ async function downloadStats(){
   });
   [8,20,16,42,10,16,16].forEach(function(w,i){ws3.getColumn(i+1).width=w;});
   ws3.autoFilter={from:{row:3,column:1},to:{row:3,column:t50cols.length}};
+
+  // TOTAL row ws3
+  var tr3=top50data.length+4;
+  ws3.getRow(tr3).height=24;
+  var top50totalCA=top50data.reduce(function(s,r){return s+(r['Total TTC']||0);},0);
+  for(var ci=0;ci<t50cols.length;ci++){
+    var cell=ws3.getCell(tr3,ci+1);
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+C.surface2}};
+    cell.font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.accent}};
+    cell.alignment={vertical:'middle',horizontal:'center'};
+    cell.border={top:{style:'medium',color:{argb:'FF'+C.accent}}};
+  }
+  ws3.getCell(tr3,1).value='TOTAL TOP 50';
+  ws3.getCell(tr3,1).alignment={vertical:'middle',horizontal:'left'};
+  ws3.getCell(tr3,7).value=Math.round(top50totalCA*100)/100;
+  ws3.getCell(tr3,7).numFmt='#,##0.00';
+  ws3.getCell(tr3,7).font={name:'Calibri',size:10,bold:true,color:{argb:'FF'+C.success}};
+
+  // REMISE -35% row ws3
+  var tr3remise=tr3+1;
+  ws3.getRow(tr3remise).height=22;
+  for(var ci=0;ci<t50cols.length;ci++){
+    var cell=ws3.getCell(tr3remise,ci+1);
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A0005'}};
+    cell.border={top:{style:'thin',color:{argb:'FF550010'}},bottom:{style:'medium',color:{argb:'FFFF4757'}}};
+    cell.font={name:'Calibri',size:9,color:{argb:'FF550010'}};
+  }
+  ws3.getCell(tr3remise,1).value='Après remise -35%';
+  ws3.getCell(tr3remise,1).font={name:'Calibri',size:10,bold:true,color:{argb:'FFFF4757'}};
+  ws3.getCell(tr3remise,1).alignment={vertical:'middle',horizontal:'left'};
+  ws3.getCell(tr3remise,2).value='-35%';
+  ws3.getCell(tr3remise,2).font={name:'Calibri',size:9,bold:true,color:{argb:'FFFF4757'}};
+  ws3.getCell(tr3remise,2).alignment={vertical:'middle',horizontal:'center'};
+  ws3.getCell(tr3remise,7).value=Math.round(top50totalCA*0.65*100)/100;
+  ws3.getCell(tr3remise,7).numFmt='#,##0.00';
+  ws3.getCell(tr3remise,7).font={name:'Calibri',size:12,bold:true,color:{argb:'FFFF4757'}};
+  ws3.getCell(tr3remise,7).alignment={vertical:'middle',horizontal:'center'};
 
   // ── Download (3 sheets: Stats par Marque, Détail Produits, Top 50 Prix)
   var buf=await wb.xlsx.writeBuffer();
